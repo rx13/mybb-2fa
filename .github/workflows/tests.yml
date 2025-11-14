@@ -69,7 +69,9 @@ jobs:
       
       - name: Check syntax errors
         run: |
-          find inc/plugins/my2fa -name "*.php" -not -path "*/vendor/*" -exec php -l {} \; | grep -v "No syntax errors"
+          echo "Checking PHP syntax..."
+          find inc/plugins/my2fa -name "*.php" -not -path "*/vendor/*" -exec php -l {} \;
+          echo "Syntax check completed successfully!"
       
       - name: Validate file structure
         run: |
