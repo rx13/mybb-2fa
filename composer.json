@@ -2,6 +2,7 @@
     "name": "rx13/mybb-2fa",
     "description": "Two-factor authentication plugin for MyBB",
     "type": "project",
+    "license": "MIT",
     "require": {
         "php": ">=7.4"
     },

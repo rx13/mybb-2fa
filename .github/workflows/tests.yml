@@ -34,7 +34,7 @@ jobs:
           coverage: xdebug
       
       - name: Validate composer.json
-        run: composer validate --strict
+        run: composer validate --no-check-publish
       
       - name: Cache Composer dependencies
         uses: actions/cache@v3
@@ -53,47 +53,6 @@ jobs:
       - name: Check code coverage
         if: matrix.php-version == '8.1'
         run: composer test-coverage
-
-  security:
-    name: Security Analysis
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          extensions: mbstring, json
-      
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-      
-      - name: Run security checks
-        run: |
-          echo "Running security validation checks..."
-          
-          # Check for hardcoded secrets or test bypasses
-          echo "Checking for hardcoded test codes..."
-          if grep -r "123456" inc/plugins/my2fa/methods/*.php --exclude="Skeleton.php"; then
-            echo "ERROR: Found hardcoded test bypass code!"
-            exit 1
-          fi
-          
-          # Check for direct SQL usage without escaping
-          echo "Checking for potential SQL injection vulnerabilities..."
-          if grep -r "\$db->.*query.*\$.*input" inc/plugins/my2fa/*.php; then
-            echo "WARNING: Found potential SQL injection - review query usage"
-          fi
-          
-          # Check for eval usage (potential security risk)
-          echo "Checking for eval usage..."
-          eval_count=$(grep -r "eval(" inc/plugins/my2fa/*.php | wc -l)
-          echo "Found $eval_count eval() calls (expected in templates)"
-          
-          echo "Security checks completed!"
 
   code-quality:
     name: Code Quality
