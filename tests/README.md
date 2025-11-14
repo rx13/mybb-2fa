@@ -60,7 +60,7 @@ vendor/bin/phpunit tests/SecurityTest.php
 
 ## CI/CD
 
-Tests run automatically on pull requests to `main` via GitHub Actions (`.github/workflows/tests.yml`).
+Tests run automatically on pull requests to `master` via GitHub Actions (`.github/workflows/tests.yml`).
 
 The workflow includes:
 - **Multiple PHP versions**: 7.4, 8.0, 8.1, 8.2
