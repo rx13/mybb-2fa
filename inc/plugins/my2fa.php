@@ -88,11 +88,11 @@ function my2fa_install()
         admin_redirect('index.php?module=config-plugins');
     }
 
+
     // Determine database-specific syntax
     $is_pgsql = ($db->type == 'pgsql');
 
-    if (!$db->field_exists('has_my2fa', 'users'))
-    {
+    if (!$db->field_exists('has_my2fa', 'users')) {
         if ($is_pgsql) {
             $db->add_column('users', 'has_my2fa', "SMALLINT NOT NULL DEFAULT 0");
         } else {
@@ -100,11 +100,10 @@ function my2fa_install()
         }
     }
 
-    if (!$db->field_exists('my2fa_storage', 'sessions'))
-    {
+    if (!$db->field_exists('my2fa_storage', 'sessions')) {
         $db->add_column('sessions', 'my2fa_storage', "TEXT");
     }
-    
+
     if ($is_pgsql) {
         // PostgreSQL syntax
         $db->write_query("
@@ -126,7 +125,7 @@ function my2fa_install()
                 PRIMARY KEY (tid)
             )
         ");
-        
+
         $db->write_query("
             CREATE INDEX IF NOT EXISTS IX_uid ON " . TABLE_PREFIX . "my2fa_tokens (uid)
         ");
@@ -140,7 +139,7 @@ function my2fa_install()
                 inserted_on BIGINT NOT NULL
             )
         ");
-        
+
         $db->write_query("
             CREATE INDEX IF NOT EXISTS IX_uei ON " . TABLE_PREFIX . "my2fa_logs (uid, event, inserted_on)
         ");
@@ -177,6 +176,19 @@ function my2fa_install()
                 PRIMARY KEY (`id`),
                 KEY `IX_uei` (`uid`, `event`, `inserted_on`)
             ) ENGINE=InnoDB" . $db->build_create_table_collation()
+        );
+    }
+
+    // Idempotent template modification: only insert placeholder if not present
+    require_once MYBB_ROOT . '/inc/adminfunctions_templates.php';
+    $template = $db->fetch_field(
+        $db->simple_select('templates', 'template', "title='usercp_nav_profile' AND sid='-2'"),
+        'template'
+    );
+    if (strpos($template, '<!-- my2faUsercpSetupNav -->') === false) {
+        find_replace_templatesets('usercp_nav_profile',
+            '#' . preg_quote('{$changenameop}') . '#i',
+            '{$changenameop}<!-- my2faUsercpSetupNav -->'
         );
     }
 }
@@ -322,12 +334,7 @@ function my2fa_activate()
     if ($templates)
         $PL->templates('my2fa', 'My2FA', $templates);
 
-    require_once MYBB_ROOT . '/inc/adminfunctions_templates.php';
-
-    find_replace_templatesets('usercp_nav_profile',
-        '#' . preg_quote('{$changenameop}') . '#i',
-        '{$changenameop}<!-- my2faUsercpSetupNav -->'
-    );
+    // Template modification only needed on install, not on every activate
 }
 
 function my2fa_deactivate()
