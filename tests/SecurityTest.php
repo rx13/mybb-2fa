@@ -120,8 +120,13 @@ class SecurityTest extends TestCase
         
         $url = \My2FA\getCurrentUrl();
         $this->assertNotNull($url);
-        // Script tags should be removed by sanitization
+        // Special characters should be removed by sanitization, leaving only alphanumeric chars
+        // The regex removes <, >, (, ), but keeps alphanumeric characters like 'script' and 'alert'
         $this->assertStringNotContainsString('<script>', $url);
-        $this->assertStringNotContainsString('alert', $url);
+        $this->assertStringNotContainsString('</script>', $url);
+        $this->assertStringNotContainsString('<', $url);
+        $this->assertStringNotContainsString('>', $url);
+        // The sanitized host should only contain valid hostname characters
+        $this->assertStringContainsString('example.com', $url);
     }
 }

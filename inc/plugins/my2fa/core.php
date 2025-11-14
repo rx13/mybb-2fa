@@ -95,12 +95,14 @@ function isRedirectUrlValid(string $redirectUrl): bool
             return false;
         }
         // Relative URLs without host are okay
-        return strpos(parse_url($redirectUrl, PHP_URL_QUERY), 'ajax=') === false;
+        $query = parse_url($redirectUrl, PHP_URL_QUERY);
+        return $query === null || strpos($query, 'ajax=') === false;
     }
 
+    $query = parse_url($redirectUrl, PHP_URL_QUERY);
     return
         $redirectUrlHost === $boardUrlHost &&
-        strpos(parse_url($redirectUrl, PHP_URL_QUERY), 'ajax=') === false
+        ($query === null || strpos($query, 'ajax=') === false)
     ;
 }
 
