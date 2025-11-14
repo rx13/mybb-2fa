@@ -18,14 +18,19 @@ This plugin supports both MySQL and PostgreSQL databases. The plugin automatical
 
 ## Alpha Release
 
-Not suggested for production use. In the meantime feedback and suggestions are welcome. Lazy to-do list:
+Not suggested for production use. In the meantime feedback and suggestions are welcome.
+
+## Outstanding Features
+
+Prioritized by value and ease of implementation:
 
 ```
-- backup codes
-- email method (send otp via email)
-
-- security mail notifications on disable of a method + use of a backup code
-- templates caching
-- hooks
+1. backup codes (High Priority)
+   - High value: essential fallback authentication method
+   - Moderate complexity: cryptographic code generation, secure storage, one-time use validation
+   
+2. security mail notifications on disable of a method + use of a backup code (Lower Priority)
+   - Moderate value: enhances security awareness
+   - Low complexity: email notifications on specific events
 ```
 
