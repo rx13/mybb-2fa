@@ -158,7 +158,7 @@ abstract class AbstractMethod
         global $lang, $db;
 
         // Get user data for notification
-        $query = $db->simple_select('users', 'uid,username,email', "uid = {$userId}");
+        $query = $db->simple_select('users', 'uid,username,email', "uid = " . (int)$userId);
         $user = $db->fetch_array($query);
 
         // Get method name for notification
