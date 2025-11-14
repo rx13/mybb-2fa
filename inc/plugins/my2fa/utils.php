@@ -232,5 +232,8 @@ function sendSecurityNotification(array $user, string $type, array $data = []): 
             return;
     }
 
+    if (empty($user['email'])) {
+        return;
+    }
     \my_mail($user['email'], $subject, $message);
 }
