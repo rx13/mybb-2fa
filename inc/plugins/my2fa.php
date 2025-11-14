@@ -88,44 +88,97 @@ function my2fa_install()
         admin_redirect('index.php?module=config-plugins');
     }
 
+    // Determine database-specific syntax
+    $is_pgsql = ($db->type == 'pgsql');
+
     if (!$db->field_exists('has_my2fa', 'users'))
-        $db->add_column('users', 'has_my2fa', "tinyint(1) NOT NULL DEFAULT 0");
+    {
+        if ($is_pgsql) {
+            $db->add_column('users', 'has_my2fa', "SMALLINT NOT NULL DEFAULT 0");
+        } else {
+            $db->add_column('users', 'has_my2fa', "tinyint(1) NOT NULL DEFAULT 0");
+        }
+    }
 
     if (!$db->field_exists('my2fa_storage', 'sessions'))
+    {
         $db->add_column('sessions', 'my2fa_storage', "TEXT");
+    }
+    
+    if ($is_pgsql) {
+        // PostgreSQL syntax
+        $db->write_query("
+            CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "my2fa_user_methods (
+                uid BIGINT NOT NULL,
+                method_id SMALLINT NOT NULL,
+                data VARCHAR(255) NOT NULL DEFAULT '',
+                activated_on BIGINT NOT NULL,
+                PRIMARY KEY (uid, method_id)
+            )
+        ");
 
-    $db->write_query("
-        CREATE TABLE IF NOT EXISTS `".TABLE_PREFIX."my2fa_user_methods` (
-            `uid` int unsigned NOT NULL,
-            `method_id` tinyint NOT NULL,
-            `data` varchar(255) NOT NULL DEFAULT '',
-            `activated_on` int unsigned NOT NULL,
-            PRIMARY KEY (`uid`, `method_id`)
-        ) ENGINE=InnoDB" . $db->build_create_table_collation()
-    );
+        $db->write_query("
+            CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "my2fa_tokens (
+                tid VARCHAR(32) NOT NULL,
+                uid BIGINT NOT NULL,
+                generated_on BIGINT NOT NULL DEFAULT 0,
+                expire_on BIGINT NOT NULL DEFAULT 0,
+                PRIMARY KEY (tid)
+            )
+        ");
+        
+        $db->write_query("
+            CREATE INDEX IF NOT EXISTS IX_uid ON " . TABLE_PREFIX . "my2fa_tokens (uid)
+        ");
 
-    $db->write_query("
-        CREATE TABLE IF NOT EXISTS `".TABLE_PREFIX."my2fa_tokens` (
-            `tid` varchar(32) NOT NULL,
-            `uid` int unsigned NOT NULL,
-            `generated_on` int unsigned NOT NULL DEFAULT 0,
-            `expire_on` int unsigned NOT NULL DEFAULT 0,
-            PRIMARY KEY (`tid`),
-            KEY `IX_uid` (`uid`)
-        ) ENGINE=InnoDB" . $db->build_create_table_collation()
-    );
+        $db->write_query("
+            CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "my2fa_logs (
+                id SERIAL PRIMARY KEY,
+                uid BIGINT NOT NULL,
+                event VARCHAR(40) NOT NULL,
+                data VARCHAR(255) NOT NULL DEFAULT '',
+                inserted_on BIGINT NOT NULL
+            )
+        ");
+        
+        $db->write_query("
+            CREATE INDEX IF NOT EXISTS IX_uei ON " . TABLE_PREFIX . "my2fa_logs (uid, event, inserted_on)
+        ");
+    } else {
+        // MySQL syntax
+        $db->write_query("
+            CREATE TABLE IF NOT EXISTS `" . TABLE_PREFIX . "my2fa_user_methods` (
+                `uid` int unsigned NOT NULL,
+                `method_id` tinyint NOT NULL,
+                `data` varchar(255) NOT NULL DEFAULT '',
+                `activated_on` int unsigned NOT NULL,
+                PRIMARY KEY (`uid`, `method_id`)
+            ) ENGINE=InnoDB" . $db->build_create_table_collation()
+        );
 
-    $db->write_query("
-        CREATE TABLE IF NOT EXISTS `".TABLE_PREFIX."my2fa_logs` (
-            `id` int unsigned NOT NULL AUTO_INCREMENT,
-            `uid` int unsigned NOT NULL,
-            `event` varchar(40) NOT NULL,
-            `data` varchar(255) NOT NULL DEFAULT '',
-            `inserted_on` int unsigned NOT NULL,
-            PRIMARY KEY (`id`),
-            KEY `IX_uei` (`uid`, `event`, `inserted_on`)
-        ) ENGINE=InnoDB" . $db->build_create_table_collation()
-    );
+        $db->write_query("
+            CREATE TABLE IF NOT EXISTS `" . TABLE_PREFIX . "my2fa_tokens` (
+                `tid` varchar(32) NOT NULL,
+                `uid` int unsigned NOT NULL,
+                `generated_on` int unsigned NOT NULL DEFAULT 0,
+                `expire_on` int unsigned NOT NULL DEFAULT 0,
+                PRIMARY KEY (`tid`),
+                KEY `IX_uid` (`uid`)
+            ) ENGINE=InnoDB" . $db->build_create_table_collation()
+        );
+
+        $db->write_query("
+            CREATE TABLE IF NOT EXISTS `" . TABLE_PREFIX . "my2fa_logs` (
+                `id` int unsigned NOT NULL AUTO_INCREMENT,
+                `uid` int unsigned NOT NULL,
+                `event` varchar(40) NOT NULL,
+                `data` varchar(255) NOT NULL DEFAULT '',
+                `inserted_on` int unsigned NOT NULL,
+                PRIMARY KEY (`id`),
+                KEY `IX_uei` (`uid`, `event`, `inserted_on`)
+            ) ENGINE=InnoDB" . $db->build_create_table_collation()
+        );
+    }
 }
 
 function my2fa_uninstall()

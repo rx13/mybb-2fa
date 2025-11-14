@@ -1,0 +1,82 @@
+name: "PHP Static Analysis"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  phpstan:
+    name: PHPStan Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Install PHPStan
+        run: composer require --dev phpstan/phpstan
+
+      - name: Create PHPStan config
+        run: |
+          cat > phpstan.neon << 'EOF'
+          parameters:
+              level: 5
+              paths:
+                  - inc/plugins/my2fa.php
+                  - inc/plugins/my2fa
+              excludePaths:
+                  - inc/plugins/my2fa/vendor/*
+          EOF
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --error-format=github --no-progress
+
+  psalm:
+    name: Psalm Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Install Psalm
+        run: composer require --dev vimeo/psalm
+
+      - name: Initialize Psalm
+        run: vendor/bin/psalm --init src=inc/plugins/my2fa.php,inc/plugins/my2fa level=5 || true
+
+      - name: Run Psalm with Security Analysis
+        run: vendor/bin/psalm --output-format=github --taint-analysis --report=results.sarif
+
+      - name: Upload Security Analysis results to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif
+          category: psalm
