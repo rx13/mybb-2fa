@@ -1,6 +1,31 @@
 {
+    "name": "rx13/mybb-2fa-plugin",
+    "version": "1.9.0",
+    "description": "2FA core plugin dependencies for MyBB",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "rx13",
+            "email": "contact@rx13.net"
+        },
+        {
+            "name": "demtor",
+            "email": "9848968+demtor@users.noreply.github.com"
+        },
+        {
+            "name": "demtor",
+            "email": "paosdm@gmail.com"
+        },
+        {
+            "name": "Omar Gonzalez",
+            "email": "Sama34@users.noreply.github.com"
+        }
+    ],
     "require": {
         "bacon/bacon-qr-code": "^2.0",
         "pragmarx/google2fa": "^8.0"
-    }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }
