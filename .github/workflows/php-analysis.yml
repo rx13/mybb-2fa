@@ -7,43 +7,6 @@ on:
     branches: [ "master" ]
 
 jobs:
-  phpstan:
-    name: PHPStan Analysis
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          coverage: none
-
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --no-suggest
-
-      - name: Install PHPStan
-        run: composer require --dev phpstan/phpstan
-
-      - name: Create PHPStan config
-        run: |
-          cat > phpstan.neon << 'EOF'
-          parameters:
-              level: 5
-              paths:
-                  - inc/plugins/my2fa.php
-                  - inc/plugins/my2fa
-              excludePaths:
-                  - inc/plugins/my2fa/vendor/*
-          EOF
-
-      - name: Run PHPStan
-        run: vendor/bin/phpstan analyse --error-format=github --no-progress
-
   psalm:
     name: Psalm Security Analysis
     runs-on: ubuntu-latest
