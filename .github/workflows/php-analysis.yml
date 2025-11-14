@@ -10,6 +10,8 @@ jobs:
   phpstan:
     name: PHPStan Analysis
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
       - name: Checkout code
