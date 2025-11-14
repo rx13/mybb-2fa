@@ -88,3 +88,31 @@ To manage your two-factor authentication settings, you can go to the following U
 
 Thank you,
 {4} Staff";
+
+$l['my2fa_security_notification_method_disabled_subject'] = "Two-factor authentication method disabled at {1}";
+$l['my2fa_security_notification_method_disabled_message'] = "{1},
+
+A two-factor authentication method ({2}) has been disabled on your account.
+
+If you did not make this change, please secure your account immediately by:
+1. Changing your password at {3}/usercp.php?action=password
+2. Reviewing your two-factor authentication settings at {3}/usercp.php?action=my2fa
+
+This notification was sent to help protect your account security.
+
+Thank you,
+{4} Staff";
+
+$l['my2fa_security_notification_backup_code_used_subject'] = "Backup code used for login at {1}";
+$l['my2fa_security_notification_backup_code_used_message'] = "{1},
+
+A backup code was used to access your account.
+
+If this was you, no action is needed. If you did not use a backup code, please secure your account immediately by:
+1. Changing your password at {2}/usercp.php?action=password
+2. Reviewing your two-factor authentication settings at {2}/usercp.php?action=my2fa
+
+This notification was sent to help protect your account security.
+
+Thank you,
+{3} Staff";
