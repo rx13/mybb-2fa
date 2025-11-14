@@ -244,6 +244,15 @@ function insertUserMethod(array $data): array
 {
     global $db;
 
+    // Validate required fields
+    if (!isset($data['uid']) || !isset($data['method_id'])) {
+        throw new \Exception('Missing required fields: uid and method_id');
+    }
+
+    // Ensure proper types
+    $data['uid'] = (int) $data['uid'];
+    $data['method_id'] = (int) $data['method_id'];
+
     if (!empty($data['data']))
         $data['data'] = json_encode($data['data']);
     else

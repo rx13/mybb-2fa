@@ -193,8 +193,13 @@ function passwordConfirmationCheck(string $redirectUrl, int $maxAllowedMinutes):
     $headerinclude, $header, $theme, $footer;
 
     $sessionStorage = selectSessionStorage($session->sid);
+    
+    // Check if password was recently confirmed
+    $passwordConfirmedAt = isset($sessionStorage['password_confirmed_at']) 
+        ? (int) $sessionStorage['password_confirmed_at'] 
+        : 0;
 
-    if ($sessionStorage['password_confirmed_at'] + 60*$maxAllowedMinutes <= TIME_NOW)
+    if ($passwordConfirmedAt + 60*$maxAllowedMinutes <= TIME_NOW)
     {
         loadLanguage();
         $errors = null;
