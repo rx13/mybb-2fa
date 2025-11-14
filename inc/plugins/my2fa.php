@@ -109,10 +109,10 @@ function my2fa_install()
         // PostgreSQL syntax
         $db->write_query("
             CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "my2fa_user_methods (
-                uid INTEGER NOT NULL,
+                uid BIGINT NOT NULL,
                 method_id SMALLINT NOT NULL,
                 data VARCHAR(255) NOT NULL DEFAULT '',
-                activated_on INTEGER NOT NULL,
+                activated_on BIGINT NOT NULL,
                 PRIMARY KEY (uid, method_id)
             )
         ");
@@ -120,9 +120,9 @@ function my2fa_install()
         $db->write_query("
             CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "my2fa_tokens (
                 tid VARCHAR(32) NOT NULL,
-                uid INTEGER NOT NULL,
-                generated_on INTEGER NOT NULL DEFAULT 0,
-                expire_on INTEGER NOT NULL DEFAULT 0,
+                uid BIGINT NOT NULL,
+                generated_on BIGINT NOT NULL DEFAULT 0,
+                expire_on BIGINT NOT NULL DEFAULT 0,
                 PRIMARY KEY (tid)
             )
         ");
@@ -134,10 +134,10 @@ function my2fa_install()
         $db->write_query("
             CREATE TABLE IF NOT EXISTS " . TABLE_PREFIX . "my2fa_logs (
                 id SERIAL PRIMARY KEY,
-                uid INTEGER NOT NULL,
+                uid BIGINT NOT NULL,
                 event VARCHAR(40) NOT NULL,
                 data VARCHAR(255) NOT NULL DEFAULT '',
-                inserted_on INTEGER NOT NULL
+                inserted_on BIGINT NOT NULL
             )
         ");
         
