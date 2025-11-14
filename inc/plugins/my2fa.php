@@ -70,10 +70,10 @@ function my2fa_info()
     return [
         'name'          => 'My2FA',
         'description'   => 'Two-factor authentication for added account security.',
-        'website'       => 'https://github.com/demtor/mybb-2fa',
-        'author'        => 'demtor',
-        'authorsite'    => 'https://github.com/demtor',
-        'version'       => '1.0-alpha',
+        'website'       => 'https://github.com/rx13/mybb-2fa',
+        'author'        => 'rx13, demtor, Omar Gonzalez',
+        'authorsite'    => 'https://github.com/rx13',
+        'version'       => '1.9.0',
         'compatibility' => '18*'
     ];
 }
