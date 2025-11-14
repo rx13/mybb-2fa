@@ -29,8 +29,7 @@ Prioritized by value and ease of implementation:
    - High value: essential fallback authentication method
    - Moderate complexity: cryptographic code generation, secure storage, one-time use validation
    
-2. security mail notifications on disable of a method + use of a backup code (Lower Priority)
-   - Moderate value: enhances security awareness
-   - Low complexity: email notifications on specific events
+2. security mail notifications on disable of a method + use of a backup code (DONE)
+   - Implemented: enhances security awareness via email notifications on specific events
 ```
 
