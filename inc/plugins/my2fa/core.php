@@ -80,12 +80,27 @@ function isRedirectUrlValid(string $redirectUrl): bool
 {
     global $mybb;
 
+    // Empty redirect URL is invalid
+    if (empty($redirectUrl)) {
+        return false;
+    }
+
     $boardUrlHost = parse_url($mybb->settings['bburl'], PHP_URL_HOST);
     $redirectUrlHost = parse_url($redirectUrl, PHP_URL_HOST);
+    
+    // If no host is parsed, the URL might be relative - check it's not a protocol-relative URL
+    if ($redirectUrlHost === null) {
+        // Reject protocol-relative URLs (starting with //)
+        if (strpos($redirectUrl, '//') === 0) {
+            return false;
+        }
+        // Relative URLs without host are okay
+        return strpos(parse_url($redirectUrl, PHP_URL_QUERY), 'ajax=') === false;
+    }
 
     return
         $redirectUrlHost === $boardUrlHost &&
-        strpos(parse_url($redirectUrl, PHP_URL_QUERY), 'ajax=') === False
+        strpos(parse_url($redirectUrl, PHP_URL_QUERY), 'ajax=') === false
     ;
 }
 

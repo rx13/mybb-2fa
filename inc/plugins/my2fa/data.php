@@ -190,10 +190,12 @@ function countUserLogs(int $userId, string $event, int $secondsInterval): int
 
 function selectSessionStorage(string $sessionId): array
 {
-    global $db;
-    static $sessionsStorage;
+    global $db, $my2faSessionsStorageCache;
+    
+    if (!isset($my2faSessionsStorageCache))
+        $my2faSessionsStorageCache = [];
 
-    if (!isset($sessionsStorage[$sessionId]))
+    if (!isset($my2faSessionsStorageCache[$sessionId]))
     {
         $sessionStorage = $db->fetch_field(
             $db->simple_select(
@@ -204,36 +206,38 @@ function selectSessionStorage(string $sessionId): array
             'my2fa_storage'
         );
 
-        $sessionsStorage[$sessionId] = json_decode($sessionStorage, True) ?? [];
+        $my2faSessionsStorageCache[$sessionId] = json_decode($sessionStorage, True) ?? [];
     }
 
-    return $sessionsStorage[$sessionId];
+    return $my2faSessionsStorageCache[$sessionId];
 }
 
 function selectUserHasMy2faField(int $userId): bool
 {
-    global $db, $mybb;
-    static $usersHasMy2faField;
+    global $db, $mybb, $my2faUsersHasMy2faFieldCache;
+    
+    if (!isset($my2faUsersHasMy2faFieldCache))
+        $my2faUsersHasMy2faFieldCache = [];
 
     // Ensure userId is properly typed
     $userId = (int) $userId;
 
-    if (!isset($usersHasMy2faField[$userId]))
+    if (!isset($my2faUsersHasMy2faFieldCache[$userId]))
     {
         if ($userId === (int) $mybb->user['uid'])
         {
-            $usersHasMy2faField[$userId] = (bool) $mybb->user['has_my2fa'];
+            $my2faUsersHasMy2faFieldCache[$userId] = (bool) $mybb->user['has_my2fa'];
         }
         else
         {
-            $usersHasMy2faField[$userId] = (bool) $db->fetch_field(
+            $my2faUsersHasMy2faFieldCache[$userId] = (bool) $db->fetch_field(
                 $db->simple_select('users', 'has_my2fa', "uid = {$userId}"),
                 'has_my2fa'
             );
         }
     }
 
-    return $usersHasMy2faField[$userId];
+    return $my2faUsersHasMy2faFieldCache[$userId];
 }
 
 function insertUserMethod(array $data): array
@@ -313,16 +317,38 @@ function updateUserMethod(int $userId, int $methodId, array $data): void
 
 function updateSessionStorage(string $sessionId, array $data): void
 {
+    global $my2faSessionsStorageCache;
+    
+    // Get current storage from cache
+    $currentStorage = selectSessionStorage($sessionId);
+    $newStorage = array_merge($currentStorage, $data);
+    
     updateSession($sessionId, [
-        'my2fa_storage' => json_encode(
-            array_merge(selectSessionStorage($sessionId), $data)
-        )
+        'my2fa_storage' => json_encode($newStorage)
     ]);
+    
+    // Update the cache to avoid redundant queries
+    $my2faSessionsStorageCache[$sessionId] = $newStorage;
+}
+
+function deleteFromSessionStorage(string $sessionId, array $sessionKeys)
+{
+    global $my2faSessionsStorageCache;
+    
+    $currentStorage = selectSessionStorage($sessionId);
+    $newStorage = array_diff_key($currentStorage, array_flip($sessionKeys));
+    
+    updateSession($sessionId, [
+        'my2fa_storage' => json_encode($newStorage)
+    ]);
+    
+    // Update the cache
+    $my2faSessionsStorageCache[$sessionId] = $newStorage;
 }
 
 function updateUserHasMy2faField(int $userId, bool $hasMy2faField): void
 {
-    global $db, $mybb;
+    global $db, $mybb, $my2faUsersHasMy2faFieldCache;
 
     // Ensure userId is properly typed
     $userId = (int) $userId;
@@ -331,6 +357,9 @@ function updateUserHasMy2faField(int $userId, bool $hasMy2faField): void
 
     if ($userId === (int) $mybb->user['uid'])
         $mybb->user['has_my2fa'] = (int) $hasMy2faField;
+    
+    // Update cache
+    $my2faUsersHasMy2faFieldCache[$userId] = $hasMy2faField;
 }
 
 function deleteUserMethod(int $userId, int $methodId): void
@@ -373,13 +402,4 @@ function deleteUserTokens(int $userId, array $tokenIds = [])
 
     if (!$tokenIds || in_array($mybb->cookies['my2fa_token'], $tokenIds))
         \my_unsetcookie('my2fa_token');
-}
-
-function deleteFromSessionStorage(string $sessionId, array $sessionKeys)
-{
-    updateSession($sessionId, [
-        'my2fa_storage' => json_encode(
-            array_diff_key(selectSessionStorage($sessionId), array_flip($sessionKeys))
-        )
-    ]);
 }

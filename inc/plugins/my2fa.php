@@ -536,7 +536,10 @@ function my2fa_admin_do_recount_rebuild()
     if (!isset($mybb->input['do_rebuild_has_my2fa_values']))
         return;
 
-    $methodIdsStr = implode("','", array_column(My2FA\selectMethods(), 'id'));
+    $methodIds = array_column(My2FA\selectMethods(), 'id');
+    // Ensure all method IDs are integers
+    $methodIds = array_map('intval', $methodIds);
+    $methodIdsStr = implode("','", $methodIds);
 
     if ($methodIdsStr)
     {
@@ -549,21 +552,33 @@ function my2fa_admin_do_recount_rebuild()
         $validUserIds = [];
         while ($userMethod = $db->fetch_array($query))
         {
-            $validUserIds[] = $userMethod['uid'];
+            $validUserIds[] = (int) $userMethod['uid'];
         }
 
-        $validUserIdsStr = implode(',', $validUserIds);
+        if (!empty($validUserIds))
+        {
+            $validUserIdsStr = implode(',', $validUserIds);
 
-        $db->update_query(
-            'users',
-            ['has_my2fa' => 1],
-            "has_my2fa = 0 AND uid IN ({$validUserIdsStr})"
-        );
-        $db->update_query(
-            'users',
-            ['has_my2fa' => 0],
-            "has_my2fa = 1 AND uid NOT IN ({$validUserIdsStr})"
-        );
+            $db->update_query(
+                'users',
+                ['has_my2fa' => 1],
+                "has_my2fa = 0 AND uid IN ({$validUserIdsStr})"
+            );
+            $db->update_query(
+                'users',
+                ['has_my2fa' => 0],
+                "has_my2fa = 1 AND uid NOT IN ({$validUserIdsStr})"
+            );
+        }
+        else
+        {
+            // No valid users with 2FA, set all to 0
+            $db->update_query(
+                'users',
+                ['has_my2fa' => 0],
+                "has_my2fa = 1"
+            );
+        }
     }
 
     log_admin_action('my2fa');
