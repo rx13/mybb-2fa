@@ -4,7 +4,7 @@ A MyBB two-factor authentication plugin for added account security.
 
 ## Security Status
 
-This plugin has undergone a comprehensive security review addressing:
+This plugin has undergone a security review addressing:
 - Input validation and sanitization
 - SQL injection prevention
 - XSS vulnerability fixes
