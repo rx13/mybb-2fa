@@ -1,0 +1,125 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Test PHP ${{ matrix.php-version }}
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+          - '7.4'
+          - '8.0'
+          - '8.1'
+          - '8.2'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, json
+          coverage: xdebug
+      
+      - name: Validate composer.json
+        run: composer validate --strict
+      
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+      
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+      
+      - name: Run PHPUnit tests
+        run: composer test
+      
+      - name: Check code coverage
+        if: matrix.php-version == '8.1'
+        run: composer test-coverage
+
+  security:
+    name: Security Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, json
+      
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+      
+      - name: Run security checks
+        run: |
+          echo "Running security validation checks..."
+          
+          # Check for hardcoded secrets or test bypasses
+          echo "Checking for hardcoded test codes..."
+          if grep -r "123456" inc/plugins/my2fa/methods/*.php --exclude="Skeleton.php"; then
+            echo "ERROR: Found hardcoded test bypass code!"
+            exit 1
+          fi
+          
+          # Check for direct SQL usage without escaping
+          echo "Checking for potential SQL injection vulnerabilities..."
+          if grep -r "\$db->.*query.*\$.*input" inc/plugins/my2fa/*.php; then
+            echo "WARNING: Found potential SQL injection - review query usage"
+          fi
+          
+          # Check for eval usage (potential security risk)
+          echo "Checking for eval usage..."
+          eval_count=$(grep -r "eval(" inc/plugins/my2fa/*.php | wc -l)
+          echo "Found $eval_count eval() calls (expected in templates)"
+          
+          echo "Security checks completed!"
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+      
+      - name: Check syntax errors
+        run: |
+          find inc/plugins/my2fa -name "*.php" -not -path "*/vendor/*" -exec php -l {} \; | grep -v "No syntax errors"
+      
+      - name: Validate file structure
+        run: |
+          echo "Validating required files exist..."
+          test -f inc/plugins/my2fa.php || exit 1
+          test -f inc/plugins/my2fa/core.php || exit 1
+          test -f inc/plugins/my2fa/data.php || exit 1
+          test -f inc/plugins/my2fa/utils.php || exit 1
+          test -f inc/plugins/my2fa/methods/AbstractMethod.php || exit 1
+          test -f inc/plugins/my2fa/methods/TOTP.php || exit 1
+          test -f inc/plugins/my2fa/methods/Email.php || exit 1
+          echo "All required files exist!"
