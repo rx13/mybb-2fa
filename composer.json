@@ -1,8 +1,23 @@
 {
     "name": "rx13/mybb-2fa",
+    "version": "1.9.0",
     "description": "Two-factor authentication plugin for MyBB",
     "type": "project",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "rx13",
+            "email": "rx13@users.noreply.github.com"
+        },
+        {
+            "name": "demtor",
+            "email": "demtor@users.noreply.github.com"
+        },
+        {
+            "name": "Omar Gonzalez",
+            "email": "Sama34@users.noreply.github.com"
+        }
+    ],
     "require": {
         "php": ">=7.4"
     },
@@ -27,5 +42,7 @@
     "scripts": {
         "test": "phpunit",
         "test-coverage": "phpunit --coverage-html coverage"
-    }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }
