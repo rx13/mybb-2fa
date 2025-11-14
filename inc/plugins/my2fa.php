@@ -101,7 +101,9 @@ function my2fa_install()
     }
 
     if (!$db->field_exists('my2fa_storage', 'sessions'))
+    {
         $db->add_column('sessions', 'my2fa_storage', "TEXT");
+    }
     
     if ($is_pgsql) {
         // PostgreSQL syntax
