@@ -43,9 +43,12 @@ class TOTP extends AbstractMethod
         }
         else if (isset($mybb->input['otp']))
         {
-            if (self::isUserOtpValid($user['uid'], $mybb->input['otp'], $userMethod['data']['secret_key']))
+            // Sanitize input: remove whitespace and non-numeric characters
+            $otp = preg_replace('/[^0-9]/', '', $mybb->input['otp']);
+            
+            if (self::isUserOtpValid($user['uid'], $otp, $userMethod['data']['secret_key']))
             {
-                self::recordSuccessfulAttempt($user['uid'], $mybb->input['otp']);
+                self::recordSuccessfulAttempt($user['uid'], $otp);
                 self::completeVerification($user['uid']);
             }
             else
@@ -83,15 +86,19 @@ class TOTP extends AbstractMethod
             ]);
         }
 
+        // Escape secret key for safe output in template
+        $sessionStorage['totp_secret_key_escaped'] = htmlspecialchars_uni($sessionStorage['totp_secret_key']);
+
         if (isset($mybb->input['otp']))
         {
-            $mybb->input['otp'] = str_replace(' ', '', $mybb->input['otp']);
+            // Sanitize input: remove whitespace and non-numeric characters
+            $otp = preg_replace('/[^0-9]/', '', $mybb->input['otp']);
 
-            if (self::isUserOtpValid($user['uid'], $mybb->input['otp'], $sessionStorage['totp_secret_key']))
+            if (self::isUserOtpValid($user['uid'], $otp, $sessionStorage['totp_secret_key']))
             {
                 \My2FA\deleteFromSessionStorage($session->sid, (array) 'totp_secret_key');
 
-                self::recordSuccessfulAttempt($user['uid'], $mybb->input['otp']);
+                self::recordSuccessfulAttempt($user['uid'], $otp);
                 self::completeActivation($user['uid'], $setupUrl, [
                     'secret_key' => $sessionStorage['totp_secret_key']
                 ]);
@@ -125,8 +132,13 @@ class TOTP extends AbstractMethod
 
         if ($qrCodeRenderer === 'web_api')
         {
-            $imageSrc = str_replace('{1}', $qrCodeUrl, \My2FA\setting('totp_qr_code_web_api'));
-            $qrCodeRendered = '<img src="' . $imageSrc . '">';
+            // Properly escape the URL for use in HTML attribute
+            $imageSrc = htmlspecialchars(
+                str_replace('{1}', urlencode($qrCodeUrl), \My2FA\setting('totp_qr_code_web_api')),
+                ENT_QUOTES,
+                'UTF-8'
+            );
+            $qrCodeRendered = '<img src="' . $imageSrc . '" alt="QR Code">';
         }
         else
         {
@@ -142,7 +154,7 @@ class TOTP extends AbstractMethod
             if ($qrCodeRenderer === 'imagick_image_back_end')
             {
                 $imageSrc = 'data:image/png;base64,' . base64_encode($writer->writeString($qrCodeUrl));
-                $qrCodeRendered = '<img src="' . $imageSrc . '">';
+                $qrCodeRendered = '<img src="' . $imageSrc . '" alt="QR Code">';
             }
             else
             {
@@ -155,14 +167,17 @@ class TOTP extends AbstractMethod
 
     private static function isUserOtpValid(int $userId, string $otp, string $secretKey): bool
     {
+        // Validate input format first
+        if (strlen($otp) !== 6 || !is_numeric($otp)) {
+            return false;
+        }
+
         $google2fa = new Google2FA();
 
-        return
-            strlen($otp) === 6 &&
-            is_numeric($otp) &&
-            $google2fa->verifyKey($secretKey, $otp) &&
-            !self::isUserCodeAlreadyUsed($userId, $otp, 30+120*2)
-            || (int) $otp === 123456 // test
-        ;
+        // Use constant-time comparison to prevent timing attacks
+        $isValid = $google2fa->verifyKey($secretKey, $otp);
+        $isNotReused = !self::isUserCodeAlreadyUsed($userId, $otp, 30+120*2);
+
+        return $isValid && $isNotReused;
     }
 }

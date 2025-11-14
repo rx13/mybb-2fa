@@ -46,10 +46,16 @@ function selectUserMethods(int $userId, array $methodIds = [], array $options = 
     $userMethods = [];
     $methods = selectMethods();
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+
     $methodIds = $methodIds
         ? array_intersect($methodIds, array_column($methods, 'id'))
         : array_column($methods, 'id')
     ;
+    
+    // Sanitize method IDs to integers only
+    $methodIds = array_map('intval', $methodIds);
     $methodIdsStr = implode(',', $methodIds);
 
     if ($methodIdsStr)
@@ -75,8 +81,15 @@ function countUserMethods(int $userId): int
 {
     global $db;
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+    
     $count = 0;
-    $methodIdsStr = implode(',', array_column(selectMethods(), 'id'));
+    $methodIds = array_column(selectMethods(), 'id');
+    
+    // Sanitize method IDs to integers only
+    $methodIds = array_map('intval', $methodIds);
+    $methodIdsStr = implode(',', $methodIds);
 
     if ($methodIdsStr)
     {
@@ -90,13 +103,16 @@ function countUserMethods(int $userId): int
         );
     }
 
-    return $count;
+    return (int) $count;
 }
 
 function selectUserTokens(int $userId, array $tokenIds = [], array $options = []): array
 {
     global $db;
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+    
     $whereClause = null;
 
     if ($tokenIds)
@@ -125,6 +141,10 @@ function selectUserLogs(int $userId, string $event, int $secondsInterval, array 
 {
     global $db;
 
+    // Ensure userId is properly typed and secondsInterval is an integer
+    $userId = (int) $userId;
+    $secondsInterval = (int) $secondsInterval;
+
     $query = $db->simple_select(
         'my2fa_logs',
         '*',
@@ -150,7 +170,11 @@ function countUserLogs(int $userId, string $event, int $secondsInterval): int
 {
     global $db;
 
-    return $db->fetch_field(
+    // Ensure userId is properly typed and secondsInterval is an integer
+    $userId = (int) $userId;
+    $secondsInterval = (int) $secondsInterval;
+
+    return (int) $db->fetch_field(
         $db->simple_select(
             'my2fa_logs',
             'COUNT(*) AS count',
@@ -166,10 +190,12 @@ function countUserLogs(int $userId, string $event, int $secondsInterval): int
 
 function selectSessionStorage(string $sessionId): array
 {
-    global $db;
-    static $sessionsStorage;
+    global $db, $my2faSessionsStorageCache;
+    
+    if (!isset($my2faSessionsStorageCache))
+        $my2faSessionsStorageCache = [];
 
-    if (!isset($sessionsStorage[$sessionId]))
+    if (!isset($my2faSessionsStorageCache[$sessionId]))
     {
         $sessionStorage = $db->fetch_field(
             $db->simple_select(
@@ -180,38 +206,52 @@ function selectSessionStorage(string $sessionId): array
             'my2fa_storage'
         );
 
-        $sessionsStorage[$sessionId] = json_decode($sessionStorage, True) ?? [];
+        $my2faSessionsStorageCache[$sessionId] = json_decode($sessionStorage, True) ?? [];
     }
 
-    return $sessionsStorage[$sessionId];
+    return $my2faSessionsStorageCache[$sessionId];
 }
 
 function selectUserHasMy2faField(int $userId): bool
 {
-    global $db, $mybb;
-    static $usersHasMy2faField;
+    global $db, $mybb, $my2faUsersHasMy2faFieldCache;
+    
+    if (!isset($my2faUsersHasMy2faFieldCache))
+        $my2faUsersHasMy2faFieldCache = [];
 
-    if (!isset($usersHasMy2faField[$userId]))
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+
+    if (!isset($my2faUsersHasMy2faFieldCache[$userId]))
     {
         if ($userId === (int) $mybb->user['uid'])
         {
-            $usersHasMy2faField[$userId] = $mybb->user['has_my2fa'];
+            $my2faUsersHasMy2faFieldCache[$userId] = (bool) $mybb->user['has_my2fa'];
         }
         else
         {
-            $usersHasMy2faField[$userId] = $db->fetch_field(
+            $my2faUsersHasMy2faFieldCache[$userId] = (bool) $db->fetch_field(
                 $db->simple_select('users', 'has_my2fa', "uid = {$userId}"),
                 'has_my2fa'
             );
         }
     }
 
-    return $usersHasMy2faField[$userId];
+    return $my2faUsersHasMy2faFieldCache[$userId];
 }
 
 function insertUserMethod(array $data): array
 {
     global $db;
+
+    // Validate required fields
+    if (!isset($data['uid']) || !isset($data['method_id'])) {
+        throw new \Exception('Missing required fields: uid and method_id');
+    }
+
+    // Ensure proper types
+    $data['uid'] = (int) $data['uid'];
+    $data['method_id'] = (int) $data['method_id'];
 
     if (!empty($data['data']))
         $data['data'] = json_encode($data['data']);
@@ -271,6 +311,10 @@ function updateUserMethod(int $userId, int $methodId, array $data): void
 {
     global $db;
 
+    // Ensure userId and methodId are properly typed
+    $userId = (int) $userId;
+    $methodId = (int) $methodId;
+
     $data = getDataItemsEscaped($data);
 
     $db->update_query(
@@ -282,26 +326,58 @@ function updateUserMethod(int $userId, int $methodId, array $data): void
 
 function updateSessionStorage(string $sessionId, array $data): void
 {
+    global $my2faSessionsStorageCache;
+    
+    // Get current storage from cache
+    $currentStorage = selectSessionStorage($sessionId);
+    $newStorage = array_merge($currentStorage, $data);
+    
     updateSession($sessionId, [
-        'my2fa_storage' => json_encode(
-            array_merge(selectSessionStorage($sessionId), $data)
-        )
+        'my2fa_storage' => json_encode($newStorage)
     ]);
+    
+    // Update the cache to avoid redundant queries
+    $my2faSessionsStorageCache[$sessionId] = $newStorage;
+}
+
+function deleteFromSessionStorage(string $sessionId, array $sessionKeys)
+{
+    global $my2faSessionsStorageCache;
+    
+    $currentStorage = selectSessionStorage($sessionId);
+    $newStorage = array_diff_key($currentStorage, array_flip($sessionKeys));
+    
+    updateSession($sessionId, [
+        'my2fa_storage' => json_encode($newStorage)
+    ]);
+    
+    // Update the cache
+    $my2faSessionsStorageCache[$sessionId] = $newStorage;
 }
 
 function updateUserHasMy2faField(int $userId, bool $hasMy2faField): void
 {
-    global $db, $mybb;
+    global $db, $mybb, $my2faUsersHasMy2faFieldCache;
+
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
 
     $db->update_query('users', ['has_my2fa' => (int) $hasMy2faField], "uid = {$userId}");
 
     if ($userId === (int) $mybb->user['uid'])
         $mybb->user['has_my2fa'] = (int) $hasMy2faField;
+    
+    // Update cache
+    $my2faUsersHasMy2faFieldCache[$userId] = $hasMy2faField;
 }
 
 function deleteUserMethod(int $userId, int $methodId): void
 {
     global $db;
+
+    // Ensure userId and methodId are properly typed
+    $userId = (int) $userId;
+    $methodId = (int) $methodId;
 
     // if you want, add untrust session too (not necessary, but for convention)
     if (countUserMethods($userId) === 1)
@@ -320,6 +396,9 @@ function deleteUserTokens(int $userId, array $tokenIds = [])
 {
     global $db, $mybb;
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+    
     $whereClause = null;
 
     if ($tokenIds)
@@ -332,13 +411,4 @@ function deleteUserTokens(int $userId, array $tokenIds = [])
 
     if (!$tokenIds || in_array($mybb->cookies['my2fa_token'], $tokenIds))
         \my_unsetcookie('my2fa_token');
-}
-
-function deleteFromSessionStorage(string $sessionId, array $sessionKeys)
-{
-    updateSession($sessionId, [
-        'my2fa_storage' => json_encode(
-            array_diff_key(selectSessionStorage($sessionId), array_flip($sessionKeys))
-        )
-    ]);
 }

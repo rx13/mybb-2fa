@@ -57,6 +57,14 @@ abstract class AbstractMethod
         ;
     }
 
+    final protected static function getRemainingAttempts(int $userId): int
+    {
+        $maxAttempts = (int) \My2FA\setting('max_verification_attempts');
+        $failedAttempts = \My2FA\countUserLogs($userId, 'failed_attempt', 60*5);
+        
+        return max(0, $maxAttempts - $failedAttempts);
+    }
+
     final protected static function recordFailedAttempt(int $userId): void
     {
         \My2FA\insertUserLog([
@@ -70,7 +78,7 @@ abstract class AbstractMethod
 
     final protected static function isUserCodeAlreadyUsed(int $userId, string $code, int $secondsInterval): bool
     {
-        $userLogs = \My2FA\selectUserLogs($userId, 'succesful_attempt', $secondsInterval);
+        $userLogs = \My2FA\selectUserLogs($userId, 'successful_attempt', $secondsInterval);
 
         foreach ($userLogs as $userLog)
         {
@@ -89,7 +97,7 @@ abstract class AbstractMethod
     {
         \My2FA\insertUserLog([
             'uid' => $userId,
-            'event' => 'succesful_attempt',
+            'event' => 'successful_attempt',
             'data' => [
                 'method_id' => static::METHOD_ID,
                 'code' => $code

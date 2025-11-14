@@ -12,7 +12,7 @@
 				<p>
 					{$lang->my2fa_totp_activation_instruction_1}
 					<br />
-					{$lang->my2fa_totp_activation_instruction_secret_key_1} <a href="javascript:void(0)" title="{$sessionStorage['totp_secret_key']}" id="secret-code">{$lang->my2fa_totp_activation_instruction_secret_key_2}</a>.
+					{$lang->my2fa_totp_activation_instruction_secret_key_1} <a href="javascript:void(0)" title="{$sessionStorage['totp_secret_key_escaped']}" id="secret-code">{$lang->my2fa_totp_activation_instruction_secret_key_2}</a>.
 				</p>
 				{$qrCodeRendered}
 				<p>
@@ -33,7 +33,7 @@
 			<td class="thead"><strong>{$lang->my2fa_totp_activation_secret_key}</strong></td>
 		</tr>
 		<tr>
-			<td class="trow1"><code>{$sessionStorage['totp_secret_key']}</code></td>
+			<td class="trow1"><code>{$sessionStorage['totp_secret_key_escaped']}</code></td>
 		</tr>
 	</table>
 </div>

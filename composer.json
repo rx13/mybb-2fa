@@ -1,0 +1,31 @@
+{
+    "name": "rx13/mybb-2fa",
+    "description": "Two-factor authentication plugin for MyBB",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "My2FA\\": "inc/plugins/my2fa/"
+        },
+        "files": [
+            "inc/plugins/my2fa/utils.php",
+            "inc/plugins/my2fa/core.php",
+            "inc/plugins/my2fa/data.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "My2FA\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage"
+    }
+}

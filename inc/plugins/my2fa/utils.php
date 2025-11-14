@@ -56,6 +56,12 @@ function getCurrentUrl(): ?string
     if (empty($_SERVER['HTTP_HOST']))
         return null;
 
+    // Sanitize HTTP_HOST to prevent header injection
+    $host = preg_replace('/[^a-zA-Z0-9\.\-:]/', '', $_SERVER['HTTP_HOST']);
+    
+    if (empty($host))
+        return null;
+
     $isHttps =
         (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
         (
@@ -73,7 +79,7 @@ function getCurrentUrl(): ?string
         parse_url($mybb->settings['bburl'], PHP_URL_SCHEME) === 'https'
     ;
 
-    $hostUrl = ($isHttps ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+    $hostUrl = ($isHttps ? 'https' : 'http') . '://' . $host;
 
     $requestUri = null;
     if (!empty($_SERVER['REQUEST_URI']))

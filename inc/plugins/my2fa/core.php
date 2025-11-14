@@ -80,12 +80,29 @@ function isRedirectUrlValid(string $redirectUrl): bool
 {
     global $mybb;
 
+    // Empty redirect URL is invalid
+    if (empty($redirectUrl)) {
+        return false;
+    }
+
     $boardUrlHost = parse_url($mybb->settings['bburl'], PHP_URL_HOST);
     $redirectUrlHost = parse_url($redirectUrl, PHP_URL_HOST);
+    
+    // If no host is parsed, the URL might be relative - check it's not a protocol-relative URL
+    if ($redirectUrlHost === null) {
+        // Reject protocol-relative URLs (starting with //)
+        if (strpos($redirectUrl, '//') === 0) {
+            return false;
+        }
+        // Relative URLs without host are okay
+        $query = parse_url($redirectUrl, PHP_URL_QUERY);
+        return $query === null || strpos($query, 'ajax=') === false;
+    }
 
+    $query = parse_url($redirectUrl, PHP_URL_QUERY);
     return
         $redirectUrlHost === $boardUrlHost &&
-        strpos(parse_url($redirectUrl, PHP_URL_QUERY), 'ajax=') === False
+        ($query === null || strpos($query, 'ajax=') === false)
     ;
 }
 
@@ -178,8 +195,13 @@ function passwordConfirmationCheck(string $redirectUrl, int $maxAllowedMinutes):
     $headerinclude, $header, $theme, $footer;
 
     $sessionStorage = selectSessionStorage($session->sid);
+    
+    // Check if password was recently confirmed
+    $passwordConfirmedAt = isset($sessionStorage['password_confirmed_at']) 
+        ? (int) $sessionStorage['password_confirmed_at'] 
+        : 0;
 
-    if ($sessionStorage['password_confirmed_at'] + 60*$maxAllowedMinutes <= TIME_NOW)
+    if ($passwordConfirmedAt + 60*$maxAllowedMinutes <= TIME_NOW)
     {
         loadLanguage();
         $errors = null;

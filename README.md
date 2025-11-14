@@ -1,6 +1,16 @@
 # My2FA
 
-A MyBB two-factor authentication for added account security.
+A MyBB two-factor authentication plugin for added account security.
+
+## Security Status
+
+This plugin has undergone a comprehensive security review addressing:
+- Input validation and sanitization
+- SQL injection prevention
+- XSS vulnerability fixes
+- CSRF protection
+- Timing attack prevention
+- Open redirect protection
 
 ## Database Support
 

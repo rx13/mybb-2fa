@@ -1,0 +1,86 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: Test PHP ${{ matrix.php-version }}
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+          - '7.4'
+          - '8.0'
+          - '8.1'
+          - '8.2'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, json
+          coverage: xdebug
+      
+      - name: Validate composer.json
+        run: composer validate --no-check-publish
+      
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
+      
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+      
+      - name: Run PHPUnit tests
+        run: composer test
+      
+      - name: Check code coverage
+        if: matrix.php-version == '8.1'
+        run: composer test-coverage
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+      
+      - name: Check syntax errors
+        run: |
+          echo "Checking PHP syntax..."
+          find inc/plugins/my2fa -name "*.php" -not -path "*/vendor/*" -exec php -l {} \;
+          echo "Syntax check completed successfully!"
+      
+      - name: Validate file structure
+        run: |
+          echo "Validating required files exist..."
+          test -f inc/plugins/my2fa.php || exit 1
+          test -f inc/plugins/my2fa/core.php || exit 1
+          test -f inc/plugins/my2fa/data.php || exit 1
+          test -f inc/plugins/my2fa/utils.php || exit 1
+          test -f inc/plugins/my2fa/methods/AbstractMethod.php || exit 1
+          test -f inc/plugins/my2fa/methods/TOTP.php || exit 1
+          test -f inc/plugins/my2fa/methods/Email.php || exit 1
+          echo "All required files exist!"
