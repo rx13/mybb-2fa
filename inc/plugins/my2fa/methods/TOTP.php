@@ -86,6 +86,9 @@ class TOTP extends AbstractMethod
             ]);
         }
 
+        // Escape secret key for safe output in template
+        $sessionStorage['totp_secret_key_escaped'] = htmlspecialchars_uni($sessionStorage['totp_secret_key']);
+
         if (isset($mybb->input['otp']))
         {
             // Sanitize input: remove whitespace and non-numeric characters
@@ -129,8 +132,13 @@ class TOTP extends AbstractMethod
 
         if ($qrCodeRenderer === 'web_api')
         {
-            $imageSrc = str_replace('{1}', $qrCodeUrl, \My2FA\setting('totp_qr_code_web_api'));
-            $qrCodeRendered = '<img src="' . $imageSrc . '">';
+            // Properly escape the URL for use in HTML attribute
+            $imageSrc = htmlspecialchars(
+                str_replace('{1}', urlencode($qrCodeUrl), \My2FA\setting('totp_qr_code_web_api')),
+                ENT_QUOTES,
+                'UTF-8'
+            );
+            $qrCodeRendered = '<img src="' . $imageSrc . '" alt="QR Code">';
         }
         else
         {
@@ -146,7 +154,7 @@ class TOTP extends AbstractMethod
             if ($qrCodeRenderer === 'imagick_image_back_end')
             {
                 $imageSrc = 'data:image/png;base64,' . base64_encode($writer->writeString($qrCodeUrl));
-                $qrCodeRendered = '<img src="' . $imageSrc . '">';
+                $qrCodeRendered = '<img src="' . $imageSrc . '" alt="QR Code">';
             }
             else
             {
