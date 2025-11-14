@@ -46,10 +46,16 @@ function selectUserMethods(int $userId, array $methodIds = [], array $options = 
     $userMethods = [];
     $methods = selectMethods();
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+
     $methodIds = $methodIds
         ? array_intersect($methodIds, array_column($methods, 'id'))
         : array_column($methods, 'id')
     ;
+    
+    // Sanitize method IDs to integers only
+    $methodIds = array_map('intval', $methodIds);
     $methodIdsStr = implode(',', $methodIds);
 
     if ($methodIdsStr)
@@ -75,8 +81,15 @@ function countUserMethods(int $userId): int
 {
     global $db;
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+    
     $count = 0;
-    $methodIdsStr = implode(',', array_column(selectMethods(), 'id'));
+    $methodIds = array_column(selectMethods(), 'id');
+    
+    // Sanitize method IDs to integers only
+    $methodIds = array_map('intval', $methodIds);
+    $methodIdsStr = implode(',', $methodIds);
 
     if ($methodIdsStr)
     {
@@ -90,13 +103,16 @@ function countUserMethods(int $userId): int
         );
     }
 
-    return $count;
+    return (int) $count;
 }
 
 function selectUserTokens(int $userId, array $tokenIds = [], array $options = []): array
 {
     global $db;
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+    
     $whereClause = null;
 
     if ($tokenIds)
@@ -125,6 +141,10 @@ function selectUserLogs(int $userId, string $event, int $secondsInterval, array 
 {
     global $db;
 
+    // Ensure userId is properly typed and secondsInterval is an integer
+    $userId = (int) $userId;
+    $secondsInterval = (int) $secondsInterval;
+
     $query = $db->simple_select(
         'my2fa_logs',
         '*',
@@ -150,7 +170,11 @@ function countUserLogs(int $userId, string $event, int $secondsInterval): int
 {
     global $db;
 
-    return $db->fetch_field(
+    // Ensure userId is properly typed and secondsInterval is an integer
+    $userId = (int) $userId;
+    $secondsInterval = (int) $secondsInterval;
+
+    return (int) $db->fetch_field(
         $db->simple_select(
             'my2fa_logs',
             'COUNT(*) AS count',
@@ -191,15 +215,18 @@ function selectUserHasMy2faField(int $userId): bool
     global $db, $mybb;
     static $usersHasMy2faField;
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+
     if (!isset($usersHasMy2faField[$userId]))
     {
         if ($userId === (int) $mybb->user['uid'])
         {
-            $usersHasMy2faField[$userId] = $mybb->user['has_my2fa'];
+            $usersHasMy2faField[$userId] = (bool) $mybb->user['has_my2fa'];
         }
         else
         {
-            $usersHasMy2faField[$userId] = $db->fetch_field(
+            $usersHasMy2faField[$userId] = (bool) $db->fetch_field(
                 $db->simple_select('users', 'has_my2fa', "uid = {$userId}"),
                 'has_my2fa'
             );
@@ -271,6 +298,10 @@ function updateUserMethod(int $userId, int $methodId, array $data): void
 {
     global $db;
 
+    // Ensure userId and methodId are properly typed
+    $userId = (int) $userId;
+    $methodId = (int) $methodId;
+
     $data = getDataItemsEscaped($data);
 
     $db->update_query(
@@ -293,6 +324,9 @@ function updateUserHasMy2faField(int $userId, bool $hasMy2faField): void
 {
     global $db, $mybb;
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+
     $db->update_query('users', ['has_my2fa' => (int) $hasMy2faField], "uid = {$userId}");
 
     if ($userId === (int) $mybb->user['uid'])
@@ -302,6 +336,10 @@ function updateUserHasMy2faField(int $userId, bool $hasMy2faField): void
 function deleteUserMethod(int $userId, int $methodId): void
 {
     global $db;
+
+    // Ensure userId and methodId are properly typed
+    $userId = (int) $userId;
+    $methodId = (int) $methodId;
 
     // if you want, add untrust session too (not necessary, but for convention)
     if (countUserMethods($userId) === 1)
@@ -320,6 +358,9 @@ function deleteUserTokens(int $userId, array $tokenIds = [])
 {
     global $db, $mybb;
 
+    // Ensure userId is properly typed
+    $userId = (int) $userId;
+    
     $whereClause = null;
 
     if ($tokenIds)

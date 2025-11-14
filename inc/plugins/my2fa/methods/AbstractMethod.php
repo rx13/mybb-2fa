@@ -70,7 +70,7 @@ abstract class AbstractMethod
 
     final protected static function isUserCodeAlreadyUsed(int $userId, string $code, int $secondsInterval): bool
     {
-        $userLogs = \My2FA\selectUserLogs($userId, 'succesful_attempt', $secondsInterval);
+        $userLogs = \My2FA\selectUserLogs($userId, 'successful_attempt', $secondsInterval);
 
         foreach ($userLogs as $userLog)
         {
@@ -89,7 +89,7 @@ abstract class AbstractMethod
     {
         \My2FA\insertUserLog([
             'uid' => $userId,
-            'event' => 'succesful_attempt',
+            'event' => 'successful_attempt',
             'data' => [
                 'method_id' => static::METHOD_ID,
                 'code' => $code

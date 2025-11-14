@@ -36,9 +36,12 @@ class Email extends AbstractMethod
         }
         else if (isset($mybb->input['code']))
         {
-            if (self::isUserCodeValid($user['uid'], $mybb->input['code']))
+            // Sanitize input: remove whitespace and non-numeric characters
+            $code = preg_replace('/[^0-9]/', '', $mybb->input['code']);
+            
+            if (self::isUserCodeValid($user['uid'], $code))
             {
-                self::recordSuccessfulAttempt($user['uid'], $mybb->input['code']);
+                self::recordSuccessfulAttempt($user['uid'], $code);
                 self::completeVerification($user['uid']);
             }
             else
@@ -104,9 +107,12 @@ class Email extends AbstractMethod
         {
             if (isset($mybb->input['code']))
             {
-                if (self::isUserCodeValid($user['uid'], $mybb->input['code']))
+                // Sanitize input: remove whitespace and non-numeric characters
+                $code = preg_replace('/[^0-9]/', '', $mybb->input['code']);
+                
+                if (self::isUserCodeValid($user['uid'], $code))
                 {
-                    self::recordSuccessfulAttempt($user['uid'], $mybb->input['code']);
+                    self::recordSuccessfulAttempt($user['uid'], $code);
                     self::completeActivation($user['uid'], $setupUrl);
                 }
                 else
@@ -158,7 +164,6 @@ class Email extends AbstractMethod
                 $requestedEmailCode &&
                 hash_equals($requestedEmailCode, $code) &&
                 !self::isUserCodeAlreadyUsed($userId, $code, 30+60*10)
-                || (int) $code === 123456 // test
             ;
         }
 
@@ -169,12 +174,18 @@ class Email extends AbstractMethod
     {
         global $db, $lang, $mybb;
 
-        $code = \my_rand(100000, 999999);
+        // Use cryptographically secure random number generation
+        try {
+            $code = random_int(100000, 999999);
+        } catch (\Exception $e) {
+            // Fallback to my_rand if random_int fails
+            $code = \my_rand(100000, 999999);
+        }
 
         \My2FA\insertUserLog([
             'uid' => $user['uid'],
             'event' => 'email_code_requested',
-            'data' => ['code' => $code],
+            'data' => ['code' => (string) $code],
         ]);
 
         my_mail(
