@@ -155,9 +155,25 @@ abstract class AbstractMethod
 
     final protected static function completeDeactivation(int $userId, string $setupUrl): void
     {
-        global $lang;
+        global $lang, $db;
+
+        // Get user data for notification
+        $query = $db->simple_select('users', 'uid,username,email', "uid = {$userId}");
+        $user = $db->fetch_array($query);
+
+        // Get method name for notification
+        $methods = \My2FA\selectMethods();
+        $methodName = $methods[static::METHOD_ID]['definitions']['name'] ?? 'Unknown';
 
         \My2FA\deleteUserMethod($userId, static::METHOD_ID);
+
+        // Send security notification
+        if ($user) {
+            \My2FA\sendSecurityNotification($user, 'method_disabled', [
+                'method_name' => $methodName
+            ]);
+        }
+
         \My2FA\redirect($setupUrl, $lang->my2fa_deactivated_success);
     }
 }

@@ -193,3 +193,44 @@ function redirect(string $url, string $message = null): void
 
     \redirect($url, $message);
 }
+
+function sendSecurityNotification(array $user, string $type, array $data = []): void
+{
+    global $mybb, $lang;
+
+    loadUserLanguage();
+
+    switch ($type) {
+        case 'method_disabled':
+            $subject = $lang->sprintf(
+                $lang->my2fa_security_notification_method_disabled_subject,
+                $mybb->settings['bbname']
+            );
+            $message = $lang->sprintf(
+                $lang->my2fa_security_notification_method_disabled_message,
+                $user['username'],
+                $data['method_name'] ?? 'Unknown',
+                $mybb->settings['bburl'],
+                $mybb->settings['bbname']
+            );
+            break;
+
+        case 'backup_code_used':
+            $subject = $lang->sprintf(
+                $lang->my2fa_security_notification_backup_code_used_subject,
+                $mybb->settings['bbname']
+            );
+            $message = $lang->sprintf(
+                $lang->my2fa_security_notification_backup_code_used_message,
+                $user['username'],
+                $mybb->settings['bburl'],
+                $mybb->settings['bbname']
+            );
+            break;
+
+        default:
+            return;
+    }
+
+    \my_mail($user['email'], $subject, $message);
+}
