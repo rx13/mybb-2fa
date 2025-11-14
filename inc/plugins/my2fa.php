@@ -443,8 +443,12 @@ function my2fa_datahandler_login_complete_end($userHandler)
 {
     global $session;
 
-    if (My2FA\isUserVerificationRequired($userHandler->login_data['uid']))
+    if (My2FA\isUserVerificationRequired($userHandler->login_data['uid'])) {
         My2FA\updateSessionStorage($session->sid, ['redirected' => 0]);
+        // Immediately redirect to 2FA verification after successful login
+        My2FA\redirectToVerification();
+        exit;
+    }
 }
 
 function my2fa_misc_start()
